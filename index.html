@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计时器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .nav {
+            background-color: #333;
+            overflow: hidden;
+            padding: 0 20px;
+        }
+        .nav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .nav a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 50px);
+            padding: 2rem;
+        }
+        .timer-container {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .display {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            color: #333;
+        }
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #startBtn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #pauseBtn {
+            background-color: #ff9800;
+            color: white;
+        }
+        #resetBtn {
+            background-color: #f44336;
+            color: white;
+        }
+        #saveBtn {
+            background-color: #2196F3;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .record-input {
+            margin-top: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .record-input input {
+            width: 80%;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="index.html" class="active">计时器</a>
+        <a href="records.html">记录</a>
+        <a href="analysis.html">分析</a>
+    </div>
+
+    <div class="container">
+        <div class="timer-container">
+            <h1>计时器</h1>
+            <div class="display" id="display">00:00:00</div>
+            <div class="buttons">
+                <button id="startBtn">开始</button>
+                <button id="pauseBtn">暂停</button>
+                <button id="resetBtn">重置</button>
+            </div>
+            <div class="record-input">
+                <input type="text" id="recordInput" placeholder="请输入这次计时做了什么">
+                <button id="saveBtn">保存记录</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let startTime;
+        let elapsedTime = 0;
+        let timerInterval;
+        let isRunning = false;
+
+        const display = document.getElementById('display');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const recordInput = document.getElementById('recordInput');
+
+        function formatTime(ms) {
+            const hours = Math.floor(ms / 3600000);
+            const minutes = Math.floor((ms % 3600000) / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            const currentTime = Date.now();
+            elapsedTime = currentTime - startTime;
+            display.textContent = formatTime(elapsedTime);
+        }
+
+        async function saveRecord() {
+            const timeStr = display.textContent;
+            const activity = recordInput.value || '未记录活动';
+            const date = new Date().toLocaleString();
+            const record = `${date} - 时长: ${timeStr} - 活动: ${activity}`;
+            
+            try {
+                const response = await fetch('/api/records', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ record }),
+                });
+                
+                if (response.ok) {
+                    recordInput.value = '';
+                    alert('记录已保存！');
+                } else {
+                    alert('保存失败，请重试！');
+                }
+            } catch (error) {
+                console.error('保存记录失败:', error);
+                alert('保存失败，请重试！');
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                isRunning = true;
+                startTime = Date.now() - elapsedTime;
+                timerInterval = setInterval(updateDisplay, 1000);
+                startBtn.textContent = '继续';
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timerInterval);
+                startBtn.textContent = '继续';
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            isRunning = false;
+            clearInterval(timerInterval);
+            elapsedTime = 0;
+            display.textContent = '00:00:00';
+            startBtn.textContent = '开始';
+        });
+
+        saveBtn.addEventListener('click', saveRecord);
+    </script>
+</body>
+</html> 
